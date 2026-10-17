@@ -1,0 +1,17 @@
+# environments / vendored
+venv/
+vggt/
+__pycache__/
+*.pyc
+# generated data & outputs — never commit these
+*.ply
+*.npz
+*.npy
+*.mp4
+*.gif
+*.png
+*.jpg
+*.log
+frames*/
+out*/
+verify*/
