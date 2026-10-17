@@ -70,11 +70,19 @@ north in the reconstruction frame, and rotate the BEV so north points up.
 - **Root cause:** a parking lot is **highly repetitive** (every stall looks alike) and the
   satellite is **cross-domain** (shot a different day — cars moved, lighting/season differ). The
   problem is **under-constrained from appearance alone.**
-- **What works:** add *external* constraints. The **compass** kills the rotation ambiguity
-  (north-up). Then a one-feature fit — the **thick yellow line (BEV) ↔ the orange walkway
-  (satellite)** — fixes the residual rotation + scale + translation (a similarity). This is the
-  pragmatic, **non-final** registration: roughly stall-accurate. Proper upgrade: **metric scale
-  from the HUD altitude + a second anchor (the hatched zone) + an ECC intensity refine.**
+- **What partially works — and what is still OPEN (read carefully):** the **compass** reliably
+  removes the rotation ambiguity (north-up), and *that part generalizes*. For the remaining
+  **scale + translation** we used a **lot-specific shortcut**: fitting the **yellow line (BEV) ↔
+  orange walkway (satellite)**. **This does NOT generalize** — a different lot may have no such
+  feature. Treat `align_yellow.py` as a *placeholder for this one lot*, not a method.
+  > ⚠ **OPEN PROBLEM — the main research task for new scenes.** A general, *feature-agnostic*
+  > BEV→satellite registration is **not solved here.** A promising (but **untested** — develop
+  > and verify it, don't trust it) recipe: **scale from the HUD altitude + intrinsics**
+  > (meters/pixel; the satellite's scale is known from Google), then **translation by
+  > edge/intensity correlation (ECC)** of the rotation+scale-normalized BEV against the satellite,
+  > or from **GPS** if the telemetry carries it. Honest caveat: a very repetitive lot can be
+  > translation-ambiguous (the grid correlates at several offsets) — lean on **GPS** or on
+  > cropping the satellite tightly to the lot. Stay skeptical and experiment.
 
 **Footprints & coverage.** Each frame's ground footprint = ray-cast the image corners through
 `K` + pose onto the ground plane (clamp the near-horizon blow-ups of oblique frames). Project via
@@ -91,7 +99,9 @@ points** (`PS≈3`) to fill gaps into a continuous surface; tilt/zoom/speed are 
 - **Square crop** for VGGT (avoids the 518² aspect squish); and **mask the HUD** (static overlay
   corrupts matching).
 - **Registration:** do NOT reach for SIFT/LoFTR/RoMa on this repetitive cross-domain scene —
-  they produce confident-but-wrong fits. Use **compass + yellow-line**.
+  they produce confident-but-wrong fits. The **compass** (rotation) generalizes; the
+  **yellow-line** (scale+translation) is a *this-lot placeholder*. The general registration is
+  **UNSOLVED** — see §3's OPEN PROBLEM and §8.
 - **Orientation:** orbit looked right with `ZSIGN=1`; the sample video is saved *portrait* but is
   really *landscape* → rotate for display (`VIDEO_ROT=ccw`); this does **not** affect the
   reconstruction (VGGT is orientation-agnostic; the compass fixes north).
@@ -134,8 +144,14 @@ Then **per video** (see README.md for exact commands):
   *parameters* change.
 
 ## 8. Next development directions
-1. **Tighten registration:** metric scale from HUD altitude + a 2nd anchor (hatched zone) + ECC
-   refine → stall-precise coverage.
-2. **Empty-stall detection** (the real goal) → project detected free spots onto the map via `M`.
-3. **OCR the HUD** (altitude + heading) to make the reconstruction metric & north-aligned
-   automatically instead of reading the compass by eye.
+1. **General, feature-agnostic BEV→satellite registration — THE key open research gap.** Make it
+   work on *any* lot without a hand-picked painted feature: compass→rotation (done),
+   HUD-altitude→scale, ECC/GPS→translation. The yellow line (and any hatch/canopy anchor) are
+   this-lot crutches to be replaced. This is unsolved — treat it as research: prototype, measure
+   the error against known ground truth, iterate. Don't assume the recipe in §3 works until you've
+   tested it; it may need a different idea entirely.
+2. **Empty-stall detection** (the real goal) → project detected free spots onto the map via the
+   registration transform.
+3. **OCR the HUD** (altitude + heading, and GPS if shown) to make the reconstruction metric &
+   north-aligned automatically instead of reading the compass/altitude by eye — this also *feeds*
+   direction #1 (altitude→scale, GPS→translation).

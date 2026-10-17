@@ -7,10 +7,13 @@ map (BEV) → rough registration to a Google-satellite crop → an orbit demo an
 
 > **Using this as a prompt for an agent (e.g. Claude Code) on the new machine:**
 > "Set up and run the pipeline in `pipeline/` on my video `<path>` and satellite crop
-> `<path>`. Follow README.md: do the per-video calibration (step 3) first by showing me a
-> frame so I can confirm the crop/mask/segment/north, then run steps 4–8. It's a repetitive
-> parking lot, so don't waste time on SIFT/LoFTR auto-matching — use the yellow-line
-> registration (`align_yellow.py`) as in the README."
+> `<path>`. Follow README.md: do the per-video calibration (step 3) first (show me a frame to
+> confirm crop/mask/segment/north), then run steps 4–8. Everything up to the **north-up BEV**
+> is general. **BEV→satellite registration is an OPEN problem** (see DEVELOPMENT.md): the
+> provided `align_yellow.py` only works on the original lot's yellow line and will likely NOT
+> fit a new lot — don't trust it, and don't fall back to SIFT/LoFTR (they fail here). Treat
+> registration as research: the candidate recipe is compass→rotation, HUD-altitude→scale,
+> ECC/GPS→translation. Flag it to me rather than pretending it worked."
 
 ---
 
@@ -94,11 +97,13 @@ NORTH=x VIDEO_ROT=ccw python footprint_3panel.py \
 - **HUD overlay is static across frames** → a feature matcher treats it as rigid structure and
   corrupts poses/depth. Must crop + mask it out. (Square crop also fixes the aspect squish.)
 - **VGGT resizes inputs to 518×518** (a square). Feed SQUARE crops so you don't distort aspect.
-- **Registration is the hard part.** Generic matchers (SIFT, LoFTR, even with car-removal and
-  masks) FAIL here — a parking lot is repetitive + the satellite is cross-domain (cars moved,
-  different day). The reliable path is the **compass** (fixes rotation: north-up) + the
-  **yellow-line fit** (`align_yellow.py`, fixes the residual). Still only ~stall-accurate.
-  Proper upgrade: metric scale from altitude, a 2nd anchor (hatched zone), and an ECC refine.
+- **Registration is the hard part — and NOT generally solved.** Generic matchers (SIFT, LoFTR,
+  even with car-removal and masks) FAIL here — a parking lot is repetitive + the satellite is
+  cross-domain (cars moved, different day). What generalizes is the **compass** (fixes rotation:
+  north-up). The rest — scale + translation — we only pinned with a **lot-specific** yellow-line
+  fit (`align_yellow.py`), which **will not transfer to a new lot.** The general, feature-agnostic
+  registration is an **open research task** (candidate recipe: HUD-altitude→scale, ECC/GPS→
+  translation; unverified). See DEVELOPMENT.md §3 (OPEN PROBLEM) and §8.
 - **Z-axis / orientation**: the orbit looked right with `ZSIGN=1`; point size `PS=3` fills gaps
   for a smooth surface.
 - **Video saved portrait but is landscape** → rotate for display (`VIDEO_ROT=ccw`); this does
