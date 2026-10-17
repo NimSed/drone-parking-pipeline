@@ -110,7 +110,7 @@ user). The compass + yellow-line approach replaced all of these.
 
 ## 6. Get the code & run it
 ```bash
-git clone <THIS_REPO_URL> drone-pipeline && cd drone-pipeline
+git clone https://github.com/NimSed/drone-parking-pipeline.git && cd drone-parking-pipeline
 python3 -m venv venv && . venv/bin/activate
 pip install torch --index-url https://download.pytorch.org/whl/cu128   # match your CUDA
 pip install numpy pillow opencv-python einops huggingface_hub safetensors trimesh
